@@ -1,1 +1,44 @@
 .env
+
+# SideKick app
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+SideKick/node_modules/
+
+# Expo
+SideKick/.expo/
+SideKick/dist/
+SideKick/web-build/
+SideKick/expo-env.d.ts
+
+# Native
+SideKick/.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+SideKick/.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+SideKick/ios
+SideKick/android
