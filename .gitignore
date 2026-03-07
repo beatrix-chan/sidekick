@@ -42,3 +42,6 @@ yarn-error.*
 # generated native folders
 SideKick/ios
 SideKick/android
+
+# Android Studio/JetBrains
+.idea
