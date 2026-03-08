@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Platform, StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
     Home as HomeIcon,
@@ -55,8 +55,8 @@ export default function MainTabs() {
                     borderTopWidth: 0,
                     elevation: 0,
                     shadowOpacity: 0,
-                    height: 72,
-                    paddingBottom: 12,
+                    height: Platform.select({ ios: 72, android: 64 }),
+                    paddingBottom: Platform.select({ ios: 12, android: 8 }),
                     paddingTop: 12,
                 },
             }}

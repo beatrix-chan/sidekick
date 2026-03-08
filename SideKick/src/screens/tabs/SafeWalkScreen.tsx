@@ -526,7 +526,11 @@ export default function SafeWalkScreen() {
             </ScrollView>
 
             {/* Session Panel Modal */}
-            <Modal visible={!!sessionId} animationType="slide" presentationStyle="pageSheet">
+            <Modal
+                visible={!!sessionId}
+                animationType="slide"
+                onRequestClose={handleEndSession}
+            >
                 {sessionId && (
                     <View style={[styles.modalContainer, { backgroundColor: BG }]}>
                         <View style={styles.sessionHeader}>

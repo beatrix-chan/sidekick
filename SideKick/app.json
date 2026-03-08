@@ -12,7 +12,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.beatrixchan.SideKick",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SideKick needs your location to find nearby walking partners."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,10 +26,20 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.beatrixchan.SideKick"
+      "package": "com.beatrixchan.SideKick",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SideKick needs your location to find nearby walking partners."
+        }
+      ]
+    ]
   }
 }

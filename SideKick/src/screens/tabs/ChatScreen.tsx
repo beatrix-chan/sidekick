@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
         paddingHorizontal: 12,
         paddingVertical: 10,
-        paddingBottom: 28,
+        paddingBottom: Platform.select({ ios: 28, android: 12 }),
         borderTopWidth: 1,
         borderTopColor: "#ddd9d4",
         backgroundColor: BG,
