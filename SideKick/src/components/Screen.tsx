@@ -1,6 +1,12 @@
 import { PropsWithChildren } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, SafeAreaViewProps } from "react-native-safe-area-context";
 
-export default function Screen({ children }: PropsWithChildren) {
-    return <SafeAreaView className="flex-1 bg-white">{children}</SafeAreaView>;
+const BG = "#f4ece4";
+
+export default function Screen({ children, style, ...rest }: PropsWithChildren<SafeAreaViewProps>) {
+    return (
+        <SafeAreaView style={[{ flex: 1, backgroundColor: BG }, style]} {...rest}>
+            {children}
+        </SafeAreaView>
+    );
 }

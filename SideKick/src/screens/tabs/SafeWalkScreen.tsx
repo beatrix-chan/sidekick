@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -8,366 +8,629 @@ import {
     TextInput,
     KeyboardAvoidingView,
     Platform,
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Dimensions,
 } from "react-native";
+import * as Location from "expo-location";
+import MapView, { Marker, Region } from "react-native-maps";
 import Screen from "../../components/Screen";
 import PrimaryButton from "../../components/PrimaryButton";
+import { auth } from "../../firebase";
+import {
+    createWalkRequest,
+    subscribeToNearbyWalkRequests,
+    subscribeToWalkRequest,
+    acceptWalkRequest,
+    getWalkSession,
+    verifyPIN,
+    endWalkSession,
+    incrementSafeWalkCount,
+    subscribeToSession,
+    getUserProfile,
+    updateUserLocation,
+} from "../../dbHelpers";
+
+const SECONDARY = "#5b798a";
+const PRIMARY = "#85817d";
+const CARD_BG = "#ddd9d4";
+const INPUT_BG = "#f9f4ee";
+const BG = "#f4ece4";
 
 type WalkRequest = {
     id: string;
-    author: string;
-    from: string;
-    to: string;
-    leavingIn: string;
-    posted: string;
+    requesterId: string;
+    authorNickname: string;
+    fromLabel: string;
+    toLabel: string;
+    leavingInMins: number;
+    createdAt: any;
 };
 
-const MOCK_REQUESTS: WalkRequest[] = [
-    {
-        id: "1",
-        author: "BubblyCrane88",
-        from: "Main Library",
-        to: "Halls of Residence (North)",
-        leavingIn: "Now",
-        posted: "2 min ago",
-    },
-    {
-        id: "2",
-        author: "CalmBadger19",
-        from: "Student Union",
-        to: "Sports Centre",
-        leavingIn: "In 5 min",
-        posted: "7 min ago",
-    },
-    {
-        id: "3",
-        author: "QuietMaple77",
-        from: "Engineering Building",
-        to: "Town Centre Bus Stop",
-        leavingIn: "In 10 min",
-        posted: "12 min ago",
-    },
+// Durham University & city locations with accurate coordinates
+const ALL_LOCATIONS = [
+    // Libraries & Study
+    { name: "Billy B (Bill Bryson Library)", short: "Billy B", lat: 54.76820, lng: -1.57334 },
+    { name: "Teaching and Learning Centre", short: "TLC", lat: 54.76726, lng: -1.57576 },
+
+    // Teaching Buildings & University Services
+    { name: "MCS (Mathematical Sciences & Computer Science)", short: "MCS", lat: 54.76374, lng: -1.57215 },
+    { name: "Chemistry Building", short: "Chemistry", lat: 54.76799, lng: -1.57015 },
+    { name: "Engineering Building", short: "Engineering", lat: 54.76740, lng: -1.57063 },
+    { name: "Calman Learning Centre", short: "Calman", lat: 54.76752, lng: -1.57202 },
+
+    // Colleges (All 17)
+    { name: "Grey College", short: "Grey", lat: 54.76493, lng: -1.57559 },
+    { name: "John Snow College", short: "John Snow", lat: 54.76264, lng: -1.58472 },
+
+    // Shops & Food
+    { name: "Tesco Extra (Dragonville)", short: "Big Tesco", lat: 54.77666, lng: -1.57605 },
+
+    // Transport
+    { name: "Durham Train Station", short: "Train Station", lat: 54.77935, lng: -1.58168 },
 ];
 
-const LEAVE_OPTIONS = ["Now", "In 5 min", "In 10 min", "In 15 min"];
-
-type SessionState = "matched" | "verified" | "active";
-
+// Lookup coordinates by location name (matches full name or short)
+function getLocationCoords(name: string): { lat: number; lng: number } | null {
+    const lower = name.toLowerCase();
+    const found = ALL_LOCATIONS.find(
+        (loc) => loc.name.toLowerCase() === lower || loc.short.toLowerCase() === lower
+    );
+    return found ? { lat: found.lat, lng: found.lng } : null;
+}
 export default function SafeWalkScreen() {
-    const [createVisible, setCreateVisible] = useState(false);
     const [from, setFrom] = useState("");
     const [to, setTo] = useState("");
-    const [leaveOption, setLeaveOption] = useState("Now");
+    const [loading, setLoading] = useState(false);
 
-    const [session, setSession] = useState<WalkRequest | null>(null);
-    const [sessionState, setSessionState] = useState<SessionState>("matched");
+    // Location state
+    const [userLat, setUserLat] = useState<number | null>(null);
+    const [userLng, setUserLng] = useState<number | null>(null);
+    const [locationError, setLocationError] = useState("");
+
+    // Nearby requests from other users
+    const [nearbyRequests, setNearbyRequests] = useState<WalkRequest[]>([]);
+    const unsubNearbyRef = useRef<(() => void) | null>(null);
+
+    // Track requester's own pending request
+    const [myRequestId, setMyRequestId] = useState<string | null>(null);
+    const unsubMyRequestRef = useRef<(() => void) | null>(null);
+
+    // Session state
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [sessionData, setSessionData] = useState<any>(null);
+    const [sessionState, setSessionState] = useState<string>("matched");
     const [partnerPin, setPartnerPin] = useState("");
     const [pinError, setPinError] = useState("");
+    const [myPin, setMyPin] = useState("");
+    const [partnerNickname, setPartnerNickname] = useState("");
+    const [myNickname, setMyNickname] = useState("");
 
-    // Mock: user's own PIN for this session
-    const MY_PIN = "7834";
-    const PARTNER_PIN_CORRECT = "2951";
+    // Map state
+    const [fromCoords, setFromCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [toCoords, setToCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [routeFromLabel, setRouteFromLabel] = useState("");
+    const [routeToLabel, setRouteToLabel] = useState("");
 
-    function handleAccept(req: WalkRequest) {
-        setSession(req);
-        setSessionState("matched");
-        setPartnerPin("");
-        setPinError("");
+    // Autocomplete state
+    const [activeField, setActiveField] = useState<"from" | "to" | null>(null);
+    const [fromSuggestions, setFromSuggestions] = useState<typeof ALL_LOCATIONS>([]);
+    const [toSuggestions, setToSuggestions] = useState<typeof ALL_LOCATIONS>([]);
+
+    const uid = auth.currentUser?.uid;
+
+    // ── Request location permission & get GPS on mount ──
+    useEffect(() => {
+        (async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+                setLocationError("Location permission denied. Safe Walk needs your location to find nearby peers.");
+                return;
+            }
+
+            try {
+                const loc = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+                setUserLat(loc.coords.latitude);
+                setUserLng(loc.coords.longitude);
+
+                // Update user profile location so notifications can find them
+                if (uid) {
+                    updateUserLocation(uid, loc.coords.latitude, loc.coords.longitude);
+                }
+            } catch (e) {
+                setLocationError("Could not get your location. Please enable GPS.");
+            }
+        })();
+    }, [uid]);
+
+    // ── Subscribe to nearby walk requests when we have location ──
+    useEffect(() => {
+        if (userLat === null || userLng === null || !uid) return;
+
+        // Clean up previous subscription
+        if (unsubNearbyRef.current) unsubNearbyRef.current();
+
+        const unsub = subscribeToNearbyWalkRequests(
+            userLat,
+            userLng,
+            uid,
+            async (requests) => {
+                // Attach nicknames
+                const withNicknames = await Promise.all(
+                    requests.map(async (r: any) => {
+                        const profile = await getUserProfile(r.requesterId);
+                        return {
+                            ...r,
+                            authorNickname: profile?.nickname || "Anonymous",
+                        };
+                    })
+                );
+                setNearbyRequests(withNicknames as WalkRequest[]);
+            }
+        );
+        unsubNearbyRef.current = unsub;
+
+        return () => {
+            if (unsubNearbyRef.current) unsubNearbyRef.current();
+        };
+    }, [userLat, userLng, uid]);
+
+    // ── User nickname ──
+    useEffect(() => {
+        if (uid) {
+            getUserProfile(uid).then((p) => setMyNickname(p?.nickname || "You"));
+        }
+    }, [uid]);
+
+    // ── Session subscription ──
+    useEffect(() => {
+        if (!sessionId) return;
+        const unsubscribe = subscribeToSession(sessionId, (session) => {
+            setSessionData(session);
+            setSessionState(session.status);
+        });
+        return () => unsubscribe();
+    }, [sessionId]);
+
+    // ── Watch requester's own request for acceptance ──
+    useEffect(() => {
+        if (!myRequestId || sessionId) return; // already in session
+
+        const unsub = subscribeToWalkRequest(myRequestId, async (request) => {
+            if (request.status === "matched" && request.matchedSessionId) {
+                // Someone accepted our request!
+                const session = await getWalkSession(request.matchedSessionId) as any;
+                if (session) {
+                    setSessionId(request.matchedSessionId);
+                    setMyPin(session.pinA as string); // requester gets pinA
+                    setSessionData(session);
+                    setSessionState("matched");
+                    setMyRequestId(null); // stop watching
+
+                    // Get the acceptor's nickname
+                    const acceptorProfile = await getUserProfile(session.userBId);
+                    setPartnerNickname(acceptorProfile?.nickname || "Your partner");
+
+                    // Resolve map coordinates from session data
+                    const sl = session.fromLabel || "";
+                    const tl = session.toLabel || "";
+                    setRouteFromLabel(sl);
+                    setRouteToLabel(tl);
+                    resolveMapCoords(sl, tl);
+                }
+            }
+        });
+        unsubMyRequestRef.current = unsub;
+
+        return () => {
+            if (unsubMyRequestRef.current) unsubMyRequestRef.current();
+        };
+    }, [myRequestId, sessionId]);
+
+    // ── Create walk request with real GPS ──
+    async function handleLeaveNow() {
+        if (!uid || !from.trim() || !to.trim()) {
+            Alert.alert("Error", "Please fill in From and Destination");
+            return;
+        }
+        if (userLat === null || userLng === null) {
+            Alert.alert("Error", "Waiting for your location. Please try again in a moment.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const requestId = await createWalkRequest(uid, from.trim(), to.trim(), 0, userLat, userLng);
+            setMyRequestId(requestId); // subscribe to watch for acceptance
+            Alert.alert("Request posted!", "Nearby users within 200m will be notified. You'll see the session as soon as someone accepts.");
+            setFrom("");
+            setTo("");
+        } catch (e: any) {
+            Alert.alert("Error", e.message);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    function handleVerifyPin() {
-        if (partnerPin === PARTNER_PIN_CORRECT) {
-            setSessionState("verified");
+    // ── Accept another user's request ──
+    async function handleAccept(req: WalkRequest) {
+        if (!uid) return;
+        try {
+            const sid = await acceptWalkRequest(req.id, uid);
+            setSessionId(sid);
+            setPartnerNickname(req.authorNickname);
+            setRouteFromLabel(req.fromLabel);
+            setRouteToLabel(req.toLabel);
+
+            // Resolve map coordinates
+            resolveMapCoords(req.fromLabel, req.toLabel);
+
+            const session = await getWalkSession(sid) as any;
+            if (session) {
+                setMyPin(session.pinB as string);
+                setSessionData(session);
+                setSessionState("matched");
+            }
+        } catch (e: any) {
+            Alert.alert("Error", e.message);
+        }
+    }
+
+    // Resolve coordinates for from/to labels
+    async function resolveMapCoords(fromName: string, toName: string) {
+        // Try known locations first
+        let fc = getLocationCoords(fromName);
+        let tc = getLocationCoords(toName);
+
+        // Geocode unknown locations
+        if (!fc) {
+            try {
+                const results = await Location.geocodeAsync(fromName + ", Durham, UK");
+                if (results.length > 0) fc = { lat: results[0].latitude, lng: results[0].longitude };
+            } catch { }
+        }
+        if (!tc) {
+            try {
+                const results = await Location.geocodeAsync(toName + ", Durham, UK");
+                if (results.length > 0) tc = { lat: results[0].latitude, lng: results[0].longitude };
+            } catch { }
+        }
+
+        // Fallback to user's current GPS position
+        if (!fc && userLat !== null && userLng !== null) {
+            fc = { lat: userLat, lng: userLng };
+        }
+
+        setFromCoords(fc);
+        setToCoords(tc);
+    }
+
+    function selectLocation(name: string) {
+        if (!from.trim()) {
+            setFrom(name);
+        } else if (!to.trim()) {
+            setTo(name);
+        }
+    }
+
+    // Autocomplete helpers
+    function handleFromChange(text: string) {
+        setFrom(text);
+        setActiveField("from");
+        if (text.trim().length > 0) {
+            const lower = text.toLowerCase();
+            setFromSuggestions(
+                ALL_LOCATIONS.filter(
+                    (loc) =>
+                        loc.name.toLowerCase().includes(lower) ||
+                        loc.short.toLowerCase().includes(lower)
+                ).slice(0, 5)
+            );
+        } else {
+            setFromSuggestions([]);
+        }
+    }
+
+    function handleToChange(text: string) {
+        setTo(text);
+        setActiveField("to");
+        if (text.trim().length > 0) {
+            const lower = text.toLowerCase();
+            setToSuggestions(
+                ALL_LOCATIONS.filter(
+                    (loc) =>
+                        loc.name.toLowerCase().includes(lower) ||
+                        loc.short.toLowerCase().includes(lower)
+                ).slice(0, 5)
+            );
+        } else {
+            setToSuggestions([]);
+        }
+    }
+
+    function pickFromSuggestion(loc: typeof ALL_LOCATIONS[0]) {
+        setFrom(loc.name);
+        setFromSuggestions([]);
+        setActiveField(null);
+    }
+
+    function pickToSuggestion(loc: typeof ALL_LOCATIONS[0]) {
+        setTo(loc.name);
+        setToSuggestions([]);
+        setActiveField(null);
+    }
+
+    async function handleVerifyPin() {
+        if (!sessionId || !uid) return;
+        const result = await verifyPIN(sessionId, uid, partnerPin);
+        if (result) {
             setPinError("");
         } else {
             setPinError("Incorrect PIN. Ask your partner to confirm.");
         }
     }
 
-    function handleEndSession() {
-        setSession(null);
+    async function handleEndSession() {
+        if (!sessionId) return;
+
+        // Increment safe walk count for current user
+        if (uid && sessionData) {
+            try {
+                await incrementSafeWalkCount(uid);
+            } catch (e) {
+                console.error("Failed to increment walk count:", e);
+            }
+        }
+
+        await endWalkSession(sessionId);
+        setSessionId(null);
+        setSessionData(null);
         setPartnerPin("");
         setPinError("");
     }
 
+    function timeAgo(timestamp: any): string {
+        if (!timestamp?.seconds) return "";
+        const diff = Date.now() - timestamp.seconds * 1000;
+        const mins = Math.floor(diff / 60000);
+        if (mins < 60) return `${mins}m ago`;
+        return `${Math.floor(mins / 60)}h ago`;
+    }
+
     return (
         <Screen>
-            <View className="flex-1">
+            <ScrollView
+                style={styles.flex1}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Header */}
-                <View className="px-5 pt-12 pb-4 flex-row items-center justify-between">
-                    <View>
-                        <Text className="text-2xl font-bold text-gray-900">Safe Walk</Text>
-                        <Text className="text-gray-400 text-sm">
-                            Find a verified walk buddy
-                        </Text>
-                    </View>
-                    <Pressable
-                        onPress={() => setCreateVisible(true)}
-                        className="bg-violet-600 rounded-xl px-4 py-2"
-                    >
-                        <Text className="text-white font-semibold text-sm">+ Create</Text>
-                    </Pressable>
-                </View>
+                <Text style={styles.headerTitle}>
+                    Don't want to walk alone? Find a peer!
+                </Text>
 
-                {/* Request list */}
-                <ScrollView
-                    className="flex-1"
-                    contentContainerStyle={{ padding: 20, gap: 12 }}
-                    showsVerticalScrollIndicator={false}
-                >
-                    <Text className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                        Open requests ({MOCK_REQUESTS.length})
-                    </Text>
-                    {MOCK_REQUESTS.map((req) => (
-                        <View
-                            key={req.id}
-                            className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm"
-                        >
-                            <View className="flex-row items-center justify-between mb-3">
-                                <View className="flex-row items-center gap-2">
-                                    <View className="w-8 h-8 rounded-full bg-violet-100 items-center justify-center">
-                                        <Text className="text-violet-600 text-xs font-bold">
-                                            {req.author.slice(0, 2).toUpperCase()}
+                {/* Location error */}
+                {locationError ? (
+                    <Text style={styles.errorText}>{locationError}</Text>
+                ) : userLat === null ? (
+                    <View style={styles.locatingRow}>
+                        <ActivityIndicator size="small" color={SECONDARY} />
+                        <Text style={styles.locatingText}>Getting your location...</Text>
+                    </View>
+                ) : null}
+
+                {/* From input with autocomplete */}
+                <View style={styles.autocompleteWrap}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="From (e.g. Billy B, MCS)"
+                        placeholderTextColor="#b5b0ab"
+                        value={from}
+                        onChangeText={handleFromChange}
+                        onFocus={() => setActiveField("from")}
+                    />
+                    {activeField === "from" && fromSuggestions.length > 0 && (
+                        <View style={styles.suggestionsBox}>
+                            {fromSuggestions.map((loc) => (
+                                <Pressable
+                                    key={loc.name}
+                                    onPress={() => pickFromSuggestion(loc)}
+                                    style={styles.suggestionItem}
+                                >
+                                    <Text style={styles.suggestionIcon}>📍</Text>
+                                    <View style={styles.suggestionText}>
+                                        <Text style={styles.suggestionName}>{loc.short}</Text>
+                                        <Text style={styles.suggestionFull} numberOfLines={1}>
+                                            {loc.name}
                                         </Text>
                                     </View>
-                                    <Text className="text-gray-700 font-medium text-sm">
-                                        {req.author}
-                                    </Text>
-                                </View>
-                                <View className="flex-row items-center gap-1">
-                                    <View className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                                    <Text className="text-green-600 text-xs font-medium">
-                                        {req.leavingIn}
-                                    </Text>
-                                </View>
-                            </View>
+                                </Pressable>
+                            ))}
+                        </View>
+                    )}
+                </View>
 
-                            <View className="gap-1 mb-3">
-                                <View className="flex-row items-center gap-2">
-                                    <Text className="text-gray-400 text-xs w-6">From</Text>
-                                    <Text className="text-gray-700 text-sm font-medium flex-1">
-                                        {req.from}
-                                    </Text>
-                                </View>
-                                <View className="ml-6 w-px h-3 bg-gray-200 self-center" />
-                                <View className="flex-row items-center gap-2">
-                                    <Text className="text-gray-400 text-xs w-6">To</Text>
-                                    <Text className="text-gray-700 text-sm font-medium flex-1">
-                                        {req.to}
-                                    </Text>
-                                </View>
-                            </View>
+                {/* Destination input with autocomplete */}
+                <View style={styles.autocompleteWrap}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Destination (e.g. Train Station)"
+                        placeholderTextColor="#b5b0ab"
+                        value={to}
+                        onChangeText={handleToChange}
+                        onFocus={() => setActiveField("to")}
+                    />
+                    {activeField === "to" && toSuggestions.length > 0 && (
+                        <View style={styles.suggestionsBox}>
+                            {toSuggestions.map((loc) => (
+                                <Pressable
+                                    key={loc.name}
+                                    onPress={() => pickToSuggestion(loc)}
+                                    style={styles.suggestionItem}
+                                >
+                                    <Text style={styles.suggestionIcon}>📍</Text>
+                                    <View style={styles.suggestionText}>
+                                        <Text style={styles.suggestionName}>{loc.short}</Text>
+                                        <Text style={styles.suggestionFull} numberOfLines={1}>
+                                            {loc.name}
+                                        </Text>
+                                    </View>
+                                </Pressable>
+                            ))}
+                        </View>
+                    )}
+                </View>
 
-                            <View className="flex-row items-center justify-between">
-                                <Text className="text-gray-400 text-xs">{req.posted}</Text>
+                {/* Leave now button */}
+                {loading ? (
+                    <ActivityIndicator size="small" color={SECONDARY} style={{ marginTop: 8 }} />
+                ) : (
+                    <Pressable onPress={handleLeaveNow} style={styles.leaveButton}>
+                        <Text style={styles.leaveButtonText}>Leave now</Text>
+                    </Pressable>
+                )}
+
+                {/* ── Nearby Requests from other users ── */}
+                {nearbyRequests.length > 0 && (
+                    <View style={styles.nearbySection}>
+                        <Text style={styles.recentLabel}>
+                            Nearby requests ({nearbyRequests.length})
+                        </Text>
+                        <View style={styles.recentDivider} />
+
+                        {nearbyRequests.map((req) => (
+                            <View key={req.id} style={styles.requestCard}>
+                                <Text style={styles.requestAuthor}>
+                                    {req.authorNickname}
+                                </Text>
+                                <Text style={styles.requestRoute}>
+                                    {req.fromLabel} → {req.toLabel}
+                                </Text>
+                                <Text style={styles.requestTime}>
+                                    {timeAgo(req.createdAt)}
+                                </Text>
                                 <Pressable
                                     onPress={() => handleAccept(req)}
-                                    className="bg-violet-600 rounded-xl px-4 py-1.5"
+                                    style={styles.acceptButton}
                                 >
-                                    <Text className="text-white text-sm font-semibold">
-                                        Accept
+                                    <Text style={styles.acceptButtonText}>
+                                        Walk together
                                     </Text>
                                 </Pressable>
                             </View>
-                        </View>
-                    ))}
-                </ScrollView>
-            </View>
-
-            {/* Create Request Modal */}
-            <Modal visible={createVisible} animationType="slide" presentationStyle="pageSheet">
-                <KeyboardAvoidingView
-                    className="flex-1 bg-white"
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                >
-                    <View className="px-5 pt-6 pb-4 border-b border-gray-100 flex-row items-center justify-between">
-                        <Text className="text-xl font-bold text-gray-900">New Walk Request</Text>
-                        <Pressable onPress={() => setCreateVisible(false)}>
-                            <Text className="text-gray-400 text-sm">Cancel</Text>
-                        </Pressable>
+                        ))}
                     </View>
-
-                    <ScrollView
-                        className="flex-1 px-5 pt-5"
-                        keyboardShouldPersistTaps="handled"
-                        contentContainerStyle={{ gap: 20 }}
-                    >
-                        {/* From */}
-                        <View className="gap-1.5">
-                            <Text className="text-sm font-medium text-gray-700">From</Text>
-                            <TextInput
-                                className="h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-base"
-                                placeholder="e.g. Main Library"
-                                placeholderTextColor="#9ca3af"
-                                value={from}
-                                onChangeText={setFrom}
-                            />
-                        </View>
-
-                        {/* To */}
-                        <View className="gap-1.5">
-                            <Text className="text-sm font-medium text-gray-700">To</Text>
-                            <TextInput
-                                className="h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-base"
-                                placeholder="e.g. North Halls"
-                                placeholderTextColor="#9ca3af"
-                                value={to}
-                                onChangeText={setTo}
-                            />
-                        </View>
-
-                        {/* Leaving */}
-                        <View className="gap-1.5">
-                            <Text className="text-sm font-medium text-gray-700">Leaving</Text>
-                            <View className="flex-row flex-wrap gap-2">
-                                {LEAVE_OPTIONS.map((opt) => (
-                                    <Pressable
-                                        key={opt}
-                                        onPress={() => setLeaveOption(opt)}
-                                        className={`px-4 py-2 rounded-xl border ${
-                                            leaveOption === opt
-                                                ? "bg-violet-600 border-violet-600"
-                                                : "bg-white border-gray-200"
-                                        }`}
-                                    >
-                                        <Text
-                                            className={`text-sm font-medium ${
-                                                leaveOption === opt
-                                                    ? "text-white"
-                                                    : "text-gray-600"
-                                            }`}
-                                        >
-                                            {opt}
-                                        </Text>
-                                    </Pressable>
-                                ))}
-                            </View>
-                        </View>
-
-                        <View className="bg-violet-50 rounded-xl p-4 border border-violet-100">
-                            <Text className="text-violet-700 text-sm leading-5">
-                                🔒 Your request will be visible to verified campus members only.
-                                Your real name is never shown.
-                            </Text>
-                        </View>
-                    </ScrollView>
-
-                    <View className="px-5 pb-8 pt-3">
-                        <PrimaryButton
-                            label="Post Request"
-                            onPress={() => setCreateVisible(false)}
-                        />
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
+                )}
+            </ScrollView>
 
             {/* Session Panel Modal */}
-            <Modal visible={!!session} animationType="slide" presentationStyle="pageSheet">
-                {session && (
-                    <View className="flex-1 bg-white">
-                        <View className="px-5 pt-6 pb-4 border-b border-gray-100">
-                            <View className="flex-row items-center justify-between">
-                                <Text className="text-xl font-bold text-gray-900">
-                                    Walk Session
+            <Modal visible={!!sessionId} animationType="slide" presentationStyle="pageSheet">
+                {sessionId && (
+                    <View style={[styles.modalContainer, { backgroundColor: BG }]}>
+                        <View style={styles.sessionHeader}>
+                            <Text style={styles.sessionTitle}>Walk Session</Text>
+                            <View
+                                style={[
+                                    styles.statusBadge,
+                                    {
+                                        backgroundColor:
+                                            sessionState === "verified" ? "#c5d5c0" : "#ddd9d4",
+                                    },
+                                ]}
+                            >
+                                <Text style={styles.statusBadgeText}>
+                                    {sessionState === "verified" ? "✅ Verified" : "⏳ Matched"}
                                 </Text>
-                                <View
-                                    className={`px-3 py-1 rounded-full ${
-                                        sessionState === "verified"
-                                            ? "bg-green-100"
-                                            : "bg-yellow-100"
-                                    }`}
-                                >
-                                    <Text
-                                        className={`text-xs font-semibold ${
-                                            sessionState === "verified"
-                                                ? "text-green-700"
-                                                : "text-yellow-700"
-                                        }`}
-                                    >
-                                        {sessionState === "verified" ? "✅ Verified" : "⏳ Matched"}
-                                    </Text>
-                                </View>
                             </View>
                         </View>
 
                         <ScrollView
-                            className="flex-1 px-5 pt-5"
+                            style={styles.flex1}
+                            contentContainerStyle={styles.sessionBody}
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ gap: 20 }}
                         >
-                            {/* Route summary */}
-                            <View className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                                <View className="flex-row items-center gap-2 mb-1">
-                                    <Text className="text-gray-400 text-xs">From</Text>
-                                    <Text className="text-gray-700 font-medium text-sm">
-                                        {session.from}
-                                    </Text>
+                            {/* Partners */}
+                            <View style={styles.partnersRow}>
+                                <View style={styles.partnerCard}>
+                                    <Text style={styles.partnerLabel}>You</Text>
+                                    <Text style={styles.partnerName}>{myNickname}</Text>
                                 </View>
-                                <View className="flex-row items-center gap-2">
-                                    <Text className="text-gray-400 text-xs">To</Text>
-                                    <Text className="text-gray-700 font-medium text-sm">
-                                        {session.to}
-                                    </Text>
+                                <Text style={styles.arrow}>↔</Text>
+                                <View style={styles.partnerCard}>
+                                    <Text style={styles.partnerLabel}>Partner</Text>
+                                    <Text style={styles.partnerName}>{partnerNickname}</Text>
                                 </View>
                             </View>
 
-                            {/* Partners */}
-                            <View className="flex-row gap-3">
-                                <View className="flex-1 bg-violet-50 border border-violet-100 rounded-2xl p-4 items-center">
-                                    <Text className="text-violet-400 text-xs mb-1">You</Text>
-                                    <Text className="text-violet-700 font-bold text-sm">
-                                        SnazzyOwl42
+                            {/* Route Map */}
+                            {(fromCoords || toCoords) && (
+                                <View style={styles.mapSection}>
+                                    <Text style={styles.mapLabel}>
+                                        📍 {routeFromLabel || "Start"} → {routeToLabel || "Destination"}
                                     </Text>
+                                    <View style={styles.mapContainer}>
+                                        <MapView
+                                            style={styles.map}
+                                            initialRegion={{
+                                                latitude: fromCoords?.lat || toCoords?.lat || 54.77,
+                                                longitude: fromCoords?.lng || toCoords?.lng || -1.57,
+                                                latitudeDelta: 0.02,
+                                                longitudeDelta: 0.02,
+                                            }}
+                                        >
+                                            {fromCoords && (
+                                                <Marker
+                                                    coordinate={{
+                                                        latitude: fromCoords.lat,
+                                                        longitude: fromCoords.lng,
+                                                    }}
+                                                    title={routeFromLabel || "From"}
+                                                    pinColor="green"
+                                                />
+                                            )}
+                                            {toCoords && (
+                                                <Marker
+                                                    coordinate={{
+                                                        latitude: toCoords.lat,
+                                                        longitude: toCoords.lng,
+                                                    }}
+                                                    title={routeToLabel || "To"}
+                                                    pinColor="red"
+                                                />
+                                            )}
+                                        </MapView>
+                                    </View>
                                 </View>
-                                <View className="items-center justify-center">
-                                    <Text className="text-gray-300 text-xl">↔</Text>
-                                </View>
-                                <View className="flex-1 bg-indigo-50 border border-indigo-100 rounded-2xl p-4 items-center">
-                                    <Text className="text-indigo-400 text-xs mb-1">Partner</Text>
-                                    <Text className="text-indigo-700 font-bold text-sm">
-                                        {session.author}
-                                    </Text>
-                                </View>
-                            </View>
+                            )}
 
                             {/* Your PIN */}
-                            <View className="bg-gray-900 rounded-2xl p-5">
-                                <Text className="text-gray-400 text-xs mb-2">
+                            <View style={styles.pinCard}>
+                                <Text style={styles.pinCardLabel}>
                                     Your PIN — share with your partner
                                 </Text>
-                                <View className="flex-row gap-3 justify-center">
-                                    {MY_PIN.split("").map((digit, i) => (
-                                        <View
-                                            key={i}
-                                            className="w-12 h-14 bg-white/10 rounded-xl items-center justify-center"
-                                        >
-                                            <Text className="text-white text-2xl font-bold">
-                                                {digit}
-                                            </Text>
+                                <View style={styles.pinDigitsRow}>
+                                    {myPin.split("").map((digit, i) => (
+                                        <View key={i} style={styles.pinDigitBox}>
+                                            <Text style={styles.pinDigit}>{digit}</Text>
                                         </View>
                                     ))}
                                 </View>
-                                <Text className="text-gray-500 text-xs text-center mt-3">
-                                    Say these digits aloud to your partner
-                                </Text>
                             </View>
 
                             {/* Enter partner PIN */}
                             {sessionState !== "verified" && (
-                                <View className="gap-3">
-                                    <Text className="text-sm font-medium text-gray-700">
+                                <View style={styles.verifySection}>
+                                    <Text style={styles.fieldLabel}>
                                         Enter your partner's PIN
                                     </Text>
                                     <TextInput
-                                        className={`h-12 px-4 rounded-xl border text-center text-2xl font-bold tracking-widest ${
-                                            pinError
-                                                ? "border-red-400 bg-red-50"
-                                                : "border-gray-200 bg-gray-50"
-                                        } text-gray-900`}
+                                        style={styles.pinInput}
                                         placeholder="• • • •"
-                                        placeholderTextColor="#d1d5db"
+                                        placeholderTextColor="#b5b0ab"
                                         keyboardType="number-pad"
                                         maxLength={4}
-                                        secureTextEntry
                                         value={partnerPin}
                                         onChangeText={(t) => {
                                             setPartnerPin(t);
@@ -375,35 +638,27 @@ export default function SafeWalkScreen() {
                                         }}
                                     />
                                     {pinError ? (
-                                        <Text className="text-red-500 text-xs">{pinError}</Text>
+                                        <Text style={styles.errorText}>{pinError}</Text>
                                     ) : null}
-                                    <PrimaryButton
-                                        label="Verify PIN"
-                                        onPress={handleVerifyPin}
-                                    />
+                                    <PrimaryButton label="Verify PIN" onPress={handleVerifyPin} />
                                 </View>
                             )}
 
                             {sessionState === "verified" && (
-                                <View className="bg-green-50 border border-green-100 rounded-2xl p-4">
-                                    <Text className="text-green-700 font-semibold text-base mb-1">
+                                <View style={styles.verifiedCard}>
+                                    <Text style={styles.verifiedTitle}>
                                         ✅ Identity confirmed!
                                     </Text>
-                                    <Text className="text-green-600 text-sm leading-5">
-                                        Both PINs matched. Your walk session is active. Stay safe
-                                        and enjoy the campus!
+                                    <Text style={styles.verifiedBody}>
+                                        Both PINs matched. Stay safe and enjoy the walk!
                                     </Text>
                                 </View>
                             )}
                         </ScrollView>
 
-                        {/* End session */}
-                        <View className="px-5 pb-8 pt-3 border-t border-gray-100">
-                            <Pressable
-                                onPress={handleEndSession}
-                                className="h-12 items-center justify-center rounded-xl border border-red-200 bg-red-50"
-                            >
-                                <Text className="text-red-600 font-semibold">End Walk Session</Text>
+                        <View style={styles.endFooter}>
+                            <Pressable onPress={handleEndSession} style={styles.endButton}>
+                                <Text style={styles.endButtonText}>End Walk Session</Text>
                             </Pressable>
                         </View>
                     </View>
@@ -412,3 +667,308 @@ export default function SafeWalkScreen() {
         </Screen>
     );
 }
+
+const styles = StyleSheet.create({
+    flex1: { flex: 1 },
+    scrollContent: { paddingHorizontal: 24, paddingTop: 56, paddingBottom: 32 },
+    headerTitle: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 16,
+        color: SECONDARY,
+        marginBottom: 20,
+    },
+    errorText: {
+        fontFamily: "Georgia-Italic",
+        color: "#c45c5c",
+        fontSize: 13,
+        marginBottom: 12,
+    },
+    locatingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 12,
+    },
+    locatingText: {
+        fontFamily: "Georgia-Italic",
+        color: PRIMARY,
+        fontSize: 13,
+    },
+    input: {
+        width: "100%",
+        height: 44,
+        paddingHorizontal: 16,
+        borderRadius: 999,
+        backgroundColor: INPUT_BG,
+        color: PRIMARY,
+        fontFamily: "Georgia-Italic",
+        fontSize: 15,
+        marginBottom: 0,
+    },
+    // Autocomplete
+    autocompleteWrap: {
+        marginBottom: 12,
+        zIndex: 1,
+    },
+    suggestionsBox: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        marginTop: 4,
+        paddingVertical: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    suggestionItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        gap: 10,
+    },
+    suggestionIcon: {
+        fontSize: 16,
+    },
+    suggestionText: {
+        flex: 1,
+    },
+    suggestionName: {
+        fontFamily: "Georgia-BoldItalic",
+        fontSize: 14,
+        color: SECONDARY,
+    },
+    suggestionFull: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 12,
+        color: PRIMARY,
+    },
+    leaveButton: {
+        alignSelf: "flex-start",
+        backgroundColor: "#9a958f",
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 999,
+        marginBottom: 32,
+    },
+    leaveButtonText: {
+        fontFamily: "Georgia",
+        color: "#fff",
+        fontSize: 14,
+    },
+    // Nearby requests section
+    nearbySection: { marginBottom: 32 },
+    requestCard: {
+        backgroundColor: CARD_BG,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+    },
+    requestAuthor: {
+        fontFamily: "Georgia-BoldItalic",
+        fontSize: 16,
+        color: SECONDARY,
+        marginBottom: 4,
+    },
+    requestRoute: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 14,
+        color: PRIMARY,
+        marginBottom: 4,
+    },
+    requestTime: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 12,
+        color: "#b5b0ab",
+        marginBottom: 12,
+    },
+    acceptButton: {
+        alignSelf: "flex-start",
+        backgroundColor: SECONDARY,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 999,
+    },
+    acceptButtonText: {
+        fontFamily: "Georgia",
+        color: "#fff",
+        fontSize: 14,
+    },
+    // Recent section
+    recentSection: { marginTop: 8 },
+    recentLabel: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 14,
+        color: PRIMARY,
+        marginBottom: 8,
+    },
+    recentDivider: {
+        height: 1,
+        backgroundColor: SECONDARY,
+        marginBottom: 24,
+    },
+    locationItem: { marginBottom: 24 },
+    locationName: {
+        fontFamily: "Georgia-BoldItalic",
+        fontSize: 18,
+        color: SECONDARY,
+        marginBottom: 2,
+    },
+    locationAddress: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 14,
+        color: PRIMARY,
+        lineHeight: 20,
+    },
+    // Modal / Session styles
+    modalContainer: { flex: 1 },
+    sessionHeader: {
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        paddingBottom: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    sessionTitle: {
+        fontFamily: "Georgia-BoldItalic",
+        fontSize: 20,
+        color: PRIMARY,
+    },
+    statusBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 999,
+    },
+    statusBadgeText: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 12,
+        color: PRIMARY,
+    },
+    sessionBody: { paddingHorizontal: 24, paddingTop: 12, gap: 20 },
+    partnersRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    partnerCard: {
+        flex: 1,
+        backgroundColor: CARD_BG,
+        borderRadius: 16,
+        padding: 16,
+        alignItems: "center",
+    },
+    partnerLabel: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 12,
+        color: PRIMARY,
+        marginBottom: 4,
+    },
+    partnerName: {
+        fontFamily: "Georgia-BoldItalic",
+        fontSize: 14,
+        color: SECONDARY,
+    },
+    arrow: {
+        fontFamily: "Georgia",
+        color: PRIMARY,
+        fontSize: 20,
+    },
+    pinCard: {
+        backgroundColor: CARD_BG,
+        borderRadius: 16,
+        padding: 20,
+    },
+    pinCardLabel: {
+        fontFamily: "Georgia-Italic",
+        color: PRIMARY,
+        fontSize: 12,
+        marginBottom: 12,
+    },
+    pinDigitsRow: { flexDirection: "row", gap: 12, justifyContent: "center" },
+    pinDigitBox: {
+        width: 48,
+        height: 56,
+        backgroundColor: BG,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    pinDigit: {
+        fontFamily: "Georgia-BoldItalic",
+        color: SECONDARY,
+        fontSize: 24,
+    },
+    verifySection: { gap: 12 },
+    fieldLabel: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 14,
+        color: PRIMARY,
+    },
+    pinInput: {
+        height: 48,
+        paddingHorizontal: 16,
+        borderRadius: 999,
+        backgroundColor: INPUT_BG,
+        textAlign: "center",
+        fontSize: 24,
+        fontFamily: "Georgia-BoldItalic",
+        letterSpacing: 8,
+        color: PRIMARY,
+    },
+    verifiedCard: {
+        backgroundColor: "#c5d5c0",
+        borderRadius: 16,
+        padding: 16,
+    },
+    verifiedTitle: {
+        fontFamily: "Georgia-BoldItalic",
+        color: "#3d6635",
+        fontSize: 16,
+        marginBottom: 4,
+    },
+    verifiedBody: {
+        fontFamily: "Georgia-Italic",
+        color: "#3d6635",
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    endFooter: {
+        paddingHorizontal: 24,
+        paddingBottom: 32,
+        paddingTop: 12,
+    },
+    endButton: {
+        height: 48,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#c45c5c",
+    },
+    endButtonText: {
+        fontFamily: "Georgia-Italic",
+        color: "#c45c5c",
+        fontSize: 14,
+    },
+    // Map styles
+    mapSection: {
+        gap: 8,
+    },
+    mapLabel: {
+        fontFamily: "Georgia-Italic",
+        fontSize: 14,
+        color: PRIMARY,
+    },
+    mapContainer: {
+        borderRadius: 16,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: CARD_BG,
+    },
+    map: {
+        width: "100%",
+        height: 200,
+    },
+});
