@@ -4,6 +4,8 @@
   <p><em>Built for Durham University students, by women for women</em></p>
 </div>
 
+![SideKick](https://github.com/user-attachments/assets/d75db554-f622-47e5-84fe-1a5dbbeb0a43)
+
 ---
 
 ## 🎯 Overview
