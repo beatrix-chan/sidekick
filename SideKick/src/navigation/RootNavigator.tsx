@@ -11,6 +11,8 @@ export default function RootNavigator() {
 
     useEffect(() => {
         const unsubscribe = onAuthChange((u) => {
+            // Durham email is validated via RegEx at registration/login time,
+            // so any authenticated Firebase user is trusted to enter the app.
             setUser(u);
             setLoading(false);
         });
@@ -20,7 +22,7 @@ export default function RootNavigator() {
     if (loading) {
         return (
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" color="#7c3aed" />
+                <ActivityIndicator size="large" color="#5b798a" />
             </View>
         );
     }

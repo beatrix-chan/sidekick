@@ -120,7 +120,7 @@ export default function WhatIsSideKickScreen({ navigation }: Props) {
 
                 {/* Next button */}
                 <TouchableOpacity
-                    onPress={() => navigation.navigate("Register")}
+                    onPress={() => navigation.navigate("Login")}
                     activeOpacity={0.7}
                 >
                     <CircleChevronRight size={80} color={SECONDARY} strokeWidth={1.5} />

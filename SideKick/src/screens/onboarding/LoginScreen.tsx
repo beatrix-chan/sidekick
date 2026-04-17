@@ -6,15 +6,15 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    Pressable,
     ActivityIndicator,
     StyleSheet,
-    Alert,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { OnboardingStackParamList } from "../../navigation/OnboardingStack";
 import Screen from "../../components/Screen";
 import PrimaryButton from "../../components/PrimaryButton";
-import { registerUser, validateDurhamEmail } from "../../authHelpers";
+import { loginUser } from "../../authHelpers";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const SECONDARY = "#5b798a";
@@ -22,30 +22,20 @@ const PRIMARY = "#85817d";
 const INPUT_BG = "#f9f4ee";
 const ERROR_COLOR = "#c45c5c";
 
-type Props = NativeStackScreenProps<OnboardingStackParamList, "Register">;
+type Props = NativeStackScreenProps<OnboardingStackParamList, "Login">;
 
-export default function RegisterScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation }: Props) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
     const [formError, setFormError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    async function handleRegister() {
+    // ── Sign In ───────────────────────────────────────────────────────────────
+    async function handleLogin() {
         const trimmedEmail = email.trim().toLowerCase();
 
-        if (!validateDurhamEmail(trimmedEmail)) {
-            setFormError("Please use your Durham email (e.g. abcd12@durham.ac.uk).");
-            return;
-        }
-
-        if (password.length < 8) {
-            setFormError("Password must be at least 8 characters.");
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            setFormError("Passwords do not match.");
+        if (!trimmedEmail || !password) {
+            setFormError("Please enter both your email and password.");
             return;
         }
 
@@ -53,22 +43,17 @@ export default function RegisterScreen({ navigation }: Props) {
         setLoading(true);
 
         try {
-            await registerUser(trimmedEmail, password);
-
-            // Success feedback → redirect to Sign In
-            Alert.alert(
-                "Account Created! 🎉",
-                "Your SideKick account has been created successfully. Please sign in.",
-                [{ text: "Sign In", onPress: () => navigation.navigate("Login") }]
-            );
+            await loginUser(trimmedEmail, password);
+            // onAuthChange in RootNavigator detects the new session and
+            // automatically swaps OnboardingStack → MainTabs
         } catch (err: any) {
             const code: string = err?.code ?? "";
-            if (code === "auth/email-already-in-use") {
-                setFormError(
-                    "This email is already registered. Please sign in instead."
-                );
-            } else if (code === "auth/weak-password") {
-                setFormError("Password is too weak. Use at least 8 characters.");
+            if (
+                code === "auth/user-not-found" ||
+                code === "auth/wrong-password" ||
+                code === "auth/invalid-credential"
+            ) {
+                setFormError("Incorrect email or password. Please try again.");
             } else {
                 setFormError(err?.message ?? "Something went wrong. Please try again.");
             }
@@ -77,6 +62,7 @@ export default function RegisterScreen({ navigation }: Props) {
         }
     }
 
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <Screen>
             <KeyboardAvoidingView
@@ -88,16 +74,14 @@ export default function RegisterScreen({ navigation }: Props) {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Heading */}
-                    <Text style={styles.heading}>Create Account</Text>
+                    <Text style={styles.heading}>Welcome back</Text>
 
                     <Text style={styles.subtitle}>
-                        Join{" "}
-                        <Text style={styles.subtitleBold}>SideKick</Text>
-                        {"\n"}Use your Durham University email to get started.
+                        Sign in to your{" "}
+                        <Text style={styles.subtitleBold}>SideKick</Text> account
                     </Text>
 
-                    {/* Durham email input */}
+                    {/* Email input */}
                     <TextInput
                         style={styles.input}
                         placeholder="abcd12@durham.ac.uk"
@@ -115,7 +99,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     {/* Password input */}
                     <TextInput
                         style={styles.input}
-                        placeholder="Create a password (min. 8 characters)"
+                        placeholder="Password"
                         placeholderTextColor="#b5b0ab"
                         secureTextEntry
                         autoCapitalize="none"
@@ -127,44 +111,28 @@ export default function RegisterScreen({ navigation }: Props) {
                         }}
                     />
 
-                    {/* Confirm Password input */}
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Confirm password"
-                        placeholderTextColor="#b5b0ab"
-                        secureTextEntry
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        value={confirmPassword}
-                        onChangeText={(t) => {
-                            setConfirmPassword(t);
-                            if (formError) setFormError("");
-                        }}
-                    />
-
                     {formError ? (
                         <Text style={styles.errorText}>{formError}</Text>
                     ) : null}
 
-                    {/* CTA */}
+                    {/* Sign In CTA */}
                     {loading ? (
-                        <ActivityIndicator
-                            size="large"
-                            color={SECONDARY}
-                            style={{ marginTop: 24 }}
-                        />
+                        <ActivityIndicator size="large" color={SECONDARY} style={{ marginTop: 24 }} />
                     ) : (
                         <PrimaryButton
-                            label="Create Account"
-                            onPress={handleRegister}
+                            label="Sign In"
+                            onPress={handleLogin}
                             style={{ marginTop: 24 }}
                         />
                     )}
 
-                    <Text style={styles.noteText}>
-                        Only Durham University emails are accepted.{"\n"}
-                        Your email is verified using the institutional format.
-                    </Text>
+                    {/* Link to Register */}
+                    <View style={styles.registerRow}>
+                        <Text style={styles.registerHint}>Don't have an account?{" "}</Text>
+                        <Pressable onPress={() => navigation.navigate("Register")}>
+                            <Text style={styles.registerLink}>Create one here</Text>
+                        </Pressable>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </Screen>
@@ -225,13 +193,24 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
 
-    noteText: {
+    registerRow: {
+        flexDirection: "row",
+        marginTop: 32,
+        alignItems: "center",
+        justifyContent: "center",
+        flexWrap: "wrap",
+    },
+
+    registerHint: {
         fontFamily: "Georgia-Italic",
-        textAlign: "center",
         color: PRIMARY,
-        fontSize: 13,
-        marginTop: 28,
-        lineHeight: 20,
-        opacity: 0.85,
+        fontSize: 14,
+    },
+
+    registerLink: {
+        fontFamily: "Georgia-Italic",
+        color: SECONDARY,
+        fontSize: 14,
+        textDecorationLine: "underline",
     },
 });
