@@ -12,14 +12,18 @@ import {
 import Screen from "../../components/Screen";
 import { auth } from "../../firebase";
 import { sendChatMessage, subscribeToChatMessages, getUserProfile } from "../../dbHelpers";
+import { colors, fonts } from "../../theme/tokens";
 
-const SECONDARY = "#5b798a";
-const PRIMARY = "#85817d";
-const CARD_BG = "#ddd9d4";
-const INPUT_BG = "#f9f4ee";
-const BG = "#f4ece4";
-const OWN_BUBBLE = "#5b798a";
-const OTHER_BUBBLE = "#ddd9d4";
+const SECONDARY = colors.secondary;
+const PRIMARY = colors.primary;
+const CARD_BG = colors.card;
+const INPUT_BG = colors.inputBackground;
+const BG = colors.background;
+const OWN_BUBBLE = colors.secondary;
+const OTHER_BUBBLE = colors.card;
+const FONT_REGULAR = fonts.regular;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
 
 type ChatMsg = {
     id: string;
@@ -151,7 +155,7 @@ export default function ChatScreen() {
                     <TextInput
                         style={styles.textInput}
                         placeholder="Type a message..."
-                        placeholderTextColor="#b5b0ab"
+                        placeholderTextColor={colors.placeholder}
                         value={input}
                         onChangeText={setInput}
                         multiline
@@ -184,12 +188,12 @@ const styles = StyleSheet.create({
         paddingBottom: 12,
     },
     headerTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 24,
         color: PRIMARY,
     },
     headerSub: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: SECONDARY,
         marginTop: 4,
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
     },
     emptyText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         textAlign: "center",
         marginTop: 40,
@@ -233,24 +237,24 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 4,
     },
     bubbleNickname: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 11,
         color: SECONDARY,
         marginBottom: 2,
     },
     bubbleText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 15,
         lineHeight: 20,
     },
     bubbleTextOwn: {
-        color: "#fff",
+        color: colors.white,
     },
     bubbleTextOther: {
         color: PRIMARY,
     },
     bubbleTime: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 10,
         marginTop: 4,
         alignSelf: "flex-end",
@@ -259,7 +263,7 @@ const styles = StyleSheet.create({
         color: "rgba(255,255,255,0.6)",
     },
     bubbleTimeOther: {
-        color: "#b5b0ab",
+        color: colors.placeholder,
     },
     // Input bar
     inputBar: {
@@ -269,7 +273,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingBottom: Platform.select({ ios: 28, android: 12 }),
         borderTopWidth: 1,
-        borderTopColor: "#ddd9d4",
+        borderTopColor: colors.card,
         backgroundColor: BG,
         gap: 8,
     },
@@ -279,7 +283,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 15,
         color: PRIMARY,
         maxHeight: 100,
@@ -294,8 +298,8 @@ const styles = StyleSheet.create({
         opacity: 0.4,
     },
     sendBtnText: {
-        fontFamily: "Georgia-BoldItalic",
-        color: "#fff",
+        fontFamily: FONT_BOLD_ITALIC,
+        color: colors.white,
         fontSize: 14,
     },
 });

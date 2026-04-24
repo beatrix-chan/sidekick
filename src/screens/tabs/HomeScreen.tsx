@@ -6,10 +6,13 @@ import Screen from "../../components/Screen";
 import { auth, db } from "../../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { getNotifications } from "../../dbHelpers";
+import { colors, fonts } from "../../theme/tokens";
 
-const SECONDARY = "#5b798a";
-const PRIMARY = "#85817d";
-const CARD_BG = "#ddd9d4";
+const SECONDARY = colors.secondary;
+const PRIMARY = colors.primary;
+const CARD_BG = colors.card;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
 
 type Props = BottomTabScreenProps<MainTabsParamList, "Home">;
 
@@ -120,13 +123,13 @@ const styles = StyleSheet.create({
     flex1: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingTop: 56, paddingBottom: 32 },
     greeting: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 36,
         color: PRIMARY,
         marginBottom: 20,
     },
     compliment: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         color: SECONDARY,
         lineHeight: 24,
@@ -143,13 +146,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     statNumber: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 40,
         color: PRIMARY,
         marginBottom: 4,
     },
     statLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 13,
         color: PRIMARY,
         textAlign: "center",
@@ -158,17 +161,17 @@ const styles = StyleSheet.create({
     statDivider: {
         width: 1,
         height: 60,
-        backgroundColor: "#b5b0ab",
+        backgroundColor: colors.placeholder,
         marginTop: 8,
     },
     sectionTitle: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         color: SECONDARY,
         marginBottom: 24,
     },
     emptyText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         fontSize: 14,
         textAlign: "center",
@@ -187,14 +190,14 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: "#c5c1bb",
+        backgroundColor: colors.avatarMuted,
         alignItems: "center",
         justifyContent: "center",
     },
     activityAvatarText: { fontSize: 22 },
     activityText: {
         flex: 1,
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
         lineHeight: 20,

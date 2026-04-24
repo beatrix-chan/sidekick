@@ -31,12 +31,16 @@ import {
     getUserProfile,
     updateUserLocation,
 } from "../../dbHelpers";
+import { colors, fonts, radii, shadows } from "../../theme/tokens";
 
-const SECONDARY = "#5b798a";
-const PRIMARY = "#85817d";
-const CARD_BG = "#ddd9d4";
-const INPUT_BG = "#f9f4ee";
-const BG = "#f4ece4";
+const SECONDARY = colors.secondary;
+const PRIMARY = colors.primary;
+const CARD_BG = colors.card;
+const INPUT_BG = colors.inputBackground;
+const BG = colors.background;
+const FONT_REGULAR = fonts.regular;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
 
 type WalkRequest = {
     id: string;
@@ -426,7 +430,7 @@ export default function SafeWalkScreen() {
                     <TextInput
                         style={styles.input}
                         placeholder="From (e.g. Billy B, MCS)"
-                        placeholderTextColor="#b5b0ab"
+                        placeholderTextColor={colors.placeholder}
                         value={from}
                         onChangeText={handleFromChange}
                         onFocus={() => setActiveField("from")}
@@ -457,7 +461,7 @@ export default function SafeWalkScreen() {
                     <TextInput
                         style={styles.input}
                         placeholder="Destination (e.g. Train Station)"
-                        placeholderTextColor="#b5b0ab"
+                        placeholderTextColor={colors.placeholder}
                         value={to}
                         onChangeText={handleToChange}
                         onFocus={() => setActiveField("to")}
@@ -540,7 +544,9 @@ export default function SafeWalkScreen() {
                                     styles.statusBadge,
                                     {
                                         backgroundColor:
-                                            sessionState === "verified" ? "#c5d5c0" : "#ddd9d4",
+                                            sessionState === "verified"
+                                                ? colors.successBackground
+                                                : colors.card,
                                     },
                                 ]}
                             >
@@ -632,7 +638,7 @@ export default function SafeWalkScreen() {
                                     <TextInput
                                         style={styles.pinInput}
                                         placeholder="• • • •"
-                                        placeholderTextColor="#b5b0ab"
+                                        placeholderTextColor={colors.placeholder}
                                         keyboardType="number-pad"
                                         maxLength={4}
                                         value={partnerPin}
@@ -676,14 +682,14 @@ const styles = StyleSheet.create({
     flex1: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingTop: 56, paddingBottom: 32 },
     headerTitle: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         color: SECONDARY,
         marginBottom: 20,
     },
     errorText: {
-        fontFamily: "Georgia-Italic",
-        color: "#c45c5c",
+        fontFamily: FONT_ITALIC,
+        color: colors.danger,
         fontSize: 13,
         marginBottom: 12,
     },
@@ -694,7 +700,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     locatingText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         fontSize: 13,
     },
@@ -702,10 +708,10 @@ const styles = StyleSheet.create({
         width: "100%",
         height: 44,
         paddingHorizontal: 16,
-        borderRadius: 999,
+        borderRadius: radii.full,
         backgroundColor: INPUT_BG,
         color: PRIMARY,
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 15,
         marginBottom: 0,
     },
@@ -715,15 +721,11 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     suggestionsBox: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.white,
         borderRadius: 12,
         marginTop: 4,
         paddingVertical: 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        ...shadows.card,
     },
     suggestionItem: {
         flexDirection: "row",
@@ -739,26 +741,26 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     suggestionName: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 14,
         color: SECONDARY,
     },
     suggestionFull: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
         color: PRIMARY,
     },
     leaveButton: {
         alignSelf: "flex-start",
-        backgroundColor: "#9a958f",
+        backgroundColor: colors.button,
         paddingHorizontal: 20,
         paddingVertical: 8,
-        borderRadius: 999,
+        borderRadius: radii.full,
         marginBottom: 32,
     },
     leaveButtonText: {
-        fontFamily: "Georgia",
-        color: "#fff",
+        fontFamily: FONT_REGULAR,
+        color: colors.white,
         fontSize: 14,
     },
     // Nearby requests section
@@ -770,21 +772,21 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     requestAuthor: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 16,
         color: SECONDARY,
         marginBottom: 4,
     },
     requestRoute: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
         marginBottom: 4,
     },
     requestTime: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
-        color: "#b5b0ab",
+        color: colors.placeholder,
         marginBottom: 12,
     },
     acceptButton: {
@@ -792,17 +794,17 @@ const styles = StyleSheet.create({
         backgroundColor: SECONDARY,
         paddingHorizontal: 20,
         paddingVertical: 8,
-        borderRadius: 999,
+        borderRadius: radii.full,
     },
     acceptButtonText: {
-        fontFamily: "Georgia",
-        color: "#fff",
+        fontFamily: FONT_REGULAR,
+        color: colors.white,
         fontSize: 14,
     },
     // Recent section
     recentSection: { marginTop: 8 },
     recentLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
         marginBottom: 8,
@@ -814,13 +816,13 @@ const styles = StyleSheet.create({
     },
     locationItem: { marginBottom: 24 },
     locationName: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 18,
         color: SECONDARY,
         marginBottom: 2,
     },
     locationAddress: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
         lineHeight: 20,
@@ -836,17 +838,17 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     sessionTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 20,
         color: PRIMARY,
     },
     statusBadge: {
         paddingHorizontal: 12,
         paddingVertical: 4,
-        borderRadius: 999,
+        borderRadius: radii.full,
     },
     statusBadgeText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
         color: PRIMARY,
     },
@@ -864,18 +866,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     partnerLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
         color: PRIMARY,
         marginBottom: 4,
     },
     partnerName: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 14,
         color: SECONDARY,
     },
     arrow: {
-        fontFamily: "Georgia",
+        fontFamily: FONT_REGULAR,
         color: PRIMARY,
         fontSize: 20,
     },
@@ -885,7 +887,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     pinCardLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         fontSize: 12,
         marginBottom: 12,
@@ -900,41 +902,41 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     pinDigit: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         color: SECONDARY,
         fontSize: 24,
     },
     verifySection: { gap: 12 },
     fieldLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
     },
     pinInput: {
         height: 48,
         paddingHorizontal: 16,
-        borderRadius: 999,
+        borderRadius: radii.full,
         backgroundColor: INPUT_BG,
         textAlign: "center",
         fontSize: 24,
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         letterSpacing: 8,
         color: PRIMARY,
     },
     verifiedCard: {
-        backgroundColor: "#c5d5c0",
+        backgroundColor: colors.successBackground,
         borderRadius: 16,
         padding: 16,
     },
     verifiedTitle: {
-        fontFamily: "Georgia-BoldItalic",
-        color: "#3d6635",
+        fontFamily: FONT_BOLD_ITALIC,
+        color: colors.successText,
         fontSize: 16,
         marginBottom: 4,
     },
     verifiedBody: {
-        fontFamily: "Georgia-Italic",
-        color: "#3d6635",
+        fontFamily: FONT_ITALIC,
+        color: colors.successText,
         fontSize: 14,
         lineHeight: 20,
     },
@@ -947,13 +949,13 @@ const styles = StyleSheet.create({
         height: 48,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 999,
+        borderRadius: radii.full,
         borderWidth: 1,
-        borderColor: "#c45c5c",
+        borderColor: colors.danger,
     },
     endButtonText: {
-        fontFamily: "Georgia-Italic",
-        color: "#c45c5c",
+        fontFamily: FONT_ITALIC,
+        color: colors.danger,
         fontSize: 14,
     },
     // Map styles
@@ -961,7 +963,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     mapLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
     },

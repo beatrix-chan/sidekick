@@ -15,6 +15,7 @@ import {
     CircleChevronRight as CircleChevronRightIcon,
 } from "lucide-react-native";
 import { OnboardingStackParamList } from "../../navigation/OnboardingStack";
+import { colors, fonts } from "../../theme/tokens";
 
 // See WelcomeScreen for context on this cast
 const CircleChevronRight = CircleChevronRightIcon as React.ComponentType<{
@@ -30,7 +31,7 @@ const Icon = (
     }>
 ) =>
     function LucideIcon() {
-        return <Component size={75} color="#85817d" strokeWidth={1.25} />;
+        return <Component size={75} color={colors.primary} strokeWidth={1.25} />;
     };
 
 const MessagesSquareIcon = Icon(
@@ -55,9 +56,11 @@ const HeartHandshakeIcon = Icon(
     }>
 );
 
-const PRIMARY = "#85817d";
-const SECONDARY = "#5b798a";
-const BG = "#f4ece4";
+const PRIMARY = colors.primary;
+const SECONDARY = colors.secondary;
+const BG = colors.background;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, "WhatIsSideKick">;
 
@@ -148,12 +151,12 @@ const styles = StyleSheet.create({
         lineHeight: 48,
     },
     headingRegular: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 40,
         color: SECONDARY,
     },
     headingBold: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 40,
         color: PRIMARY,
     },
@@ -177,12 +180,12 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     featureTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 24,
         color: PRIMARY,
     },
     featureDesc: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         color: PRIMARY,
         lineHeight: 22,

@@ -1,4 +1,5 @@
 import { Pressable, Text, PressableProps, StyleSheet } from "react-native";
+import { colors, fonts, fontSizes, radii, spacing } from "../theme/tokens";
 
 type Props = PressableProps & {
     label: string;
@@ -17,18 +18,18 @@ export default function PrimaryButton({ label, style, ...props }: Props) {
 
 const styles = StyleSheet.create({
     button: {
-        paddingHorizontal: 32,
+        paddingHorizontal: spacing.xxxl,
         paddingVertical: 14,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 999,
-        backgroundColor: "#9a958f",
+        borderRadius: radii.full,
+        backgroundColor: colors.button,
         alignSelf: "center",
     },
     label: {
-        color: "#fff",
-        fontFamily: "Georgia",
+        color: colors.white,
+        fontFamily: fonts.regular,
         fontWeight: "600",
-        fontSize: 16,
+        fontSize: fontSizes.base,
     },
 });
