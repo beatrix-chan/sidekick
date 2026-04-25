@@ -62,5 +62,18 @@ service cloud.firestore {
       allow update: if isLoggedIn() && resource.data.userId == request.auth.uid;
       allow delete: if isLoggedIn() && resource.data.userId == request.auth.uid;
     }
+
+    // REPORTS - any logged-in user can submit, no client reads/updates/deletes
+    match /reports/{reportId} {
+      allow create: if isLoggedIn();
+      allow read, update, delete: if false;
+    }
+
+    // GLOBAL CHAT - any logged-in user can read and send messages
+    match /globalChat/{messageId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn();
+      allow update, delete: if false;
+    }
   }
 }

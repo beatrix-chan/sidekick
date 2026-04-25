@@ -10,6 +10,7 @@ import {
     StyleSheet,
 } from "react-native";
 import Screen from "../../components/Screen";
+import SafetyToolkit from "../../components/SafetyToolkit";
 import { auth } from "../../firebase";
 import { sendChatMessage, subscribeToChatMessages, getUserProfile } from "../../dbHelpers";
 
@@ -33,6 +34,7 @@ export default function ChatScreen() {
     const [messages, setMessages] = useState<ChatMsg[]>([]);
     const [input, setInput] = useState("");
     const [nickname, setNickname] = useState("Anonymous");
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const flatListRef = useRef<FlatList>(null);
     const uid = auth.currentUser?.uid;
 
@@ -74,7 +76,10 @@ export default function ChatScreen() {
     const renderMessage = ({ item }: { item: ChatMsg }) => {
         const isOwn = item.authorId === uid;
         return (
-            <View
+            <Pressable
+                onLongPress={() => {
+                    if (!isOwn) setSelectedUserId(item.authorId);
+                }}
                 style={[
                     styles.bubbleRow,
                     isOwn ? styles.bubbleRowOwn : styles.bubbleRowOther,
@@ -106,7 +111,7 @@ export default function ChatScreen() {
                         {formatTime(item.createdAt)}
                     </Text>
                 </View>
-            </View>
+            </Pressable>
         );
     };
 
@@ -172,6 +177,15 @@ export default function ChatScreen() {
                     </Pressable>
                 </View>
             </KeyboardAvoidingView>
+
+            {/* Safety Toolkit — visible when a user is selected via long-press */}
+            {uid && selectedUserId && (
+                <SafetyToolkit
+                    currentUserId={uid}
+                    targetUserId={selectedUserId}
+                    onDismiss={() => setSelectedUserId(null)}
+                />
+            )}
         </Screen>
     );
 }
