@@ -27,12 +27,16 @@ import {
     deleteQuestion,
     deleteAnswer,
 } from "../../dbHelpers";
+import { colors, fonts, radii } from "../../theme/tokens";
 
-const SECONDARY = "#5b798a";
-const PRIMARY = "#85817d";
-const CARD_BG = "#ddd9d4";
-const INPUT_BG = "#f9f4ee";
-const BG = "#f4ece4";
+const SECONDARY = colors.secondary;
+const PRIMARY = colors.primary;
+const CARD_BG = colors.card;
+const INPUT_BG = colors.inputBackground;
+const BG = colors.background;
+const FONT_REGULAR = fonts.regular;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
 
 type Question = {
     id: string;
@@ -523,7 +527,7 @@ export default function QAScreen() {
                                     <TextInput
                                         style={styles.multilineInput}
                                         placeholder="Write your answer..."
-                                        placeholderTextColor="#b5b0ab"
+                                        placeholderTextColor={colors.placeholder}
                                         multiline
                                         textAlignVertical="top"
                                         value={newAnswer}
@@ -576,7 +580,7 @@ export default function QAScreen() {
                             <TextInput
                                 style={styles.singleInput}
                                 placeholder="Short summary of your question"
-                                placeholderTextColor="#b5b0ab"
+                                placeholderTextColor={colors.placeholder}
                                 value={newTitle}
                                 onChangeText={setNewTitle}
                             />
@@ -586,7 +590,7 @@ export default function QAScreen() {
                             <TextInput
                                 style={styles.multilineInput}
                                 placeholder="What would you like to ask?"
-                                placeholderTextColor="#b5b0ab"
+                                placeholderTextColor={colors.placeholder}
                                 multiline
                                 textAlignVertical="top"
                                 value={newBody}
@@ -598,7 +602,7 @@ export default function QAScreen() {
                             <TextInput
                                 style={styles.singleInput}
                                 placeholder="e.g. Computer Science, Physics"
-                                placeholderTextColor="#b5b0ab"
+                                placeholderTextColor={colors.placeholder}
                                 value={newCourse}
                                 onChangeText={setNewCourse}
                             />
@@ -645,7 +649,7 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     headerTitle: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         color: SECONDARY,
         marginBottom: 16,
@@ -655,20 +659,20 @@ const styles = StyleSheet.create({
     filterPill: {
         paddingHorizontal: 16,
         paddingVertical: 6,
-        borderRadius: 999,
+        borderRadius: radii.full,
         borderWidth: 1,
         borderColor: PRIMARY,
     },
     filterPillActive: {
-        backgroundColor: "#9a958f",
-        borderColor: "#9a958f",
+        backgroundColor: colors.button,
+        borderColor: colors.button,
     },
     filterPillText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
     },
-    filterPillTextActive: { color: "#fff" },
+    filterPillTextActive: { color: colors.white },
     // Sub-filter pills
     subFilterScroll: { marginTop: 10 },
     subFilterRow: {
@@ -680,7 +684,7 @@ const styles = StyleSheet.create({
     subPill: {
         paddingHorizontal: 12,
         paddingVertical: 4,
-        borderRadius: 999,
+        borderRadius: radii.full,
         borderWidth: 1,
         borderColor: SECONDARY,
     },
@@ -689,15 +693,15 @@ const styles = StyleSheet.create({
         borderColor: SECONDARY,
     },
     subPillText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
         color: SECONDARY,
     },
-    subPillTextActive: { color: "#fff" },
+    subPillTextActive: { color: colors.white },
     // List
     listContent: { paddingHorizontal: 24, paddingBottom: 32, gap: 16 },
     emptyText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         textAlign: "center",
         marginTop: 32,
@@ -709,30 +713,30 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     questionTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 18,
         color: PRIMARY,
         marginBottom: 8,
     },
     questionBody: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
         lineHeight: 20,
     },
     questionDivider: {
         height: 1,
-        backgroundColor: "#b5b0ab",
+        backgroundColor: colors.placeholder,
         marginVertical: 12,
     },
     questionMeta: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 13,
         color: PRIMARY,
         marginBottom: 12,
     },
     questionMetaBold: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         textDecorationLine: "underline",
     },
     questionFooter: {
@@ -748,36 +752,36 @@ const styles = StyleSheet.create({
     categoryBadge: {
         paddingHorizontal: 12,
         paddingVertical: 4,
-        borderRadius: 999,
+        borderRadius: radii.full,
         borderWidth: 1,
         borderColor: PRIMARY,
     },
     categoryBadgeText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
         color: PRIMARY,
     },
     extraTagText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 12,
         color: PRIMARY,
     },
     answerCountText: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 12,
         color: SECONDARY,
     },
     fab: {
         alignSelf: "center",
-        backgroundColor: "#9a958f",
+        backgroundColor: colors.button,
         paddingHorizontal: 24,
         paddingVertical: 12,
-        borderRadius: 999,
+        borderRadius: radii.full,
         marginTop: 8,
     },
     fabText: {
-        fontFamily: "Georgia",
-        color: "#fff",
+        fontFamily: FONT_REGULAR,
+        color: colors.white,
         fontSize: 14,
         fontWeight: "600",
     },
@@ -789,7 +793,7 @@ const styles = StyleSheet.create({
         paddingBottom: 12,
     },
     backText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: SECONDARY,
         fontSize: 14,
     },
@@ -805,25 +809,25 @@ const styles = StyleSheet.create({
     },
     // Detail modal
     detailTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 22,
         color: PRIMARY,
         marginBottom: 4,
     },
     detailMeta: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
         marginBottom: 16,
     },
     detailBody: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         lineHeight: 22,
         fontSize: 15,
     },
     answersLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: SECONDARY,
         marginBottom: 12,
@@ -835,7 +839,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     answerBody: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         lineHeight: 20,
     },
@@ -845,12 +849,12 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     answerAuthor: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: PRIMARY,
         fontSize: 12,
     },
     helpfulText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: SECONDARY,
         fontSize: 12,
     },
@@ -858,7 +862,7 @@ const styles = StyleSheet.create({
         marginTop: 16,
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: "#b5b0ab",
+        borderTopColor: colors.placeholder,
     },
     // Form modals
     formTopBar: {
@@ -870,7 +874,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     formTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 20,
         color: PRIMARY,
     },
@@ -878,15 +882,15 @@ const styles = StyleSheet.create({
     formBottomBar: { paddingHorizontal: 24, paddingBottom: 32, paddingTop: 12 },
     fieldGroup: { gap: 6 },
     fieldLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
     },
     singleInput: {
-        borderRadius: 999,
+        borderRadius: radii.full,
         padding: 16,
         color: PRIMARY,
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         backgroundColor: INPUT_BG,
     },
@@ -894,7 +898,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         color: PRIMARY,
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         backgroundColor: INPUT_BG,
         minHeight: 120,
@@ -905,14 +909,14 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: 999,
+        borderRadius: radii.full,
         borderWidth: 1,
-        borderColor: "#c45c5c",
+        borderColor: colors.danger,
     },
     deleteText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 13,
-        color: "#c45c5c",
+        color: colors.danger,
     },
     answerActions: {
         flexDirection: "row",

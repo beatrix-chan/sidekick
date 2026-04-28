@@ -5,9 +5,14 @@ import { auth, db } from "../../firebase";
 import { regenerateNickname } from "../../dbHelpers";
 import { logOut } from "../../authHelpers";
 import { doc, onSnapshot } from "firebase/firestore";
+import appJson from "../../../app.json";
+import { colors, fonts } from "../../theme/tokens";
 
-const SECONDARY = "#5b798a";
-const PRIMARY = "#85817d";
+const SECONDARY = colors.secondary;
+const PRIMARY = colors.primary;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
+const appVersion = appJson.expo.version;
 
 export default function ProfileScreen() {
     const [nickname, setNickname] = useState("...");
@@ -108,7 +113,7 @@ export default function ProfileScreen() {
                 <View style={styles.infoList}>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Version</Text>
-                        <Text style={styles.infoValue}>1</Text>
+                        <Text style={styles.infoValue}>{appVersion}</Text>
                     </View>
                     <Pressable style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Privacy Policy</Text>
@@ -143,12 +148,12 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: "#ddd9d4",
+        backgroundColor: colors.card,
         alignItems: "center",
         justifyContent: "center",
     },
     avatarText: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         color: SECONDARY,
         fontSize: 36,
     },
@@ -156,13 +161,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     nickname: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 28,
         color: SECONDARY,
         marginBottom: 4,
     },
     contributions: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: PRIMARY,
     },
@@ -171,12 +176,12 @@ const styles = StyleSheet.create({
         marginBottom: 60,
     },
     regenText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 14,
         color: SECONDARY,
     },
     sectionTitle: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         fontSize: 18,
         color: SECONDARY,
         marginBottom: 16,
@@ -191,12 +196,12 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
     },
     infoLabel: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 15,
         color: PRIMARY,
     },
     infoValue: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 15,
         color: PRIMARY,
     },
@@ -204,8 +209,8 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
     },
     logoutText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 15,
-        color: "#c45c5c",
+        color: colors.danger,
     },
 });

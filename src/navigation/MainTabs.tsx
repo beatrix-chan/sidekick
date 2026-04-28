@@ -13,6 +13,7 @@ import QAScreen from "../screens/tabs/QAScreen";
 import SafeWalkScreen from "../screens/tabs/SafeWalkScreen";
 import ProfileScreen from "../screens/tabs/ProfileScreen";
 import ChatScreen from "../screens/tabs/ChatScreen";
+import { colors } from "../theme/tokens";
 
 const LucideIcon = (
     Component: React.ComponentType<{ size: number; color: string; strokeWidth: number }>
@@ -27,10 +28,10 @@ const SafeWalkTabIcon = LucideIcon(FootprintsIcon as any);
 const ProfileTabIcon = LucideIcon(UserIcon as any);
 const ChatTabIcon = LucideIcon(MessageCircleIcon as any);
 
-const BG = "#f4ece4";
-const TAB_BG = "#ddd9d4";
-const ACTIVE = "#85817d";
-const INACTIVE = "#b5b0ab";
+const BG = colors.background;
+const TAB_BG = colors.card;
+const ACTIVE = colors.primary;
+const INACTIVE = colors.placeholder;
 
 export type MainTabsParamList = {
     Home: undefined;

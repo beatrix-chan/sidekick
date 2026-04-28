@@ -15,12 +15,16 @@ import { OnboardingStackParamList } from "../../navigation/OnboardingStack";
 import Screen from "../../components/Screen";
 import PrimaryButton from "../../components/PrimaryButton";
 import { registerUser, validateDurhamEmail } from "../../authHelpers";
+import { colors, fonts, radii } from "../../theme/tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const SECONDARY = "#5b798a";
-const PRIMARY = "#85817d";
-const INPUT_BG = "#f9f4ee";
-const ERROR_COLOR = "#c45c5c";
+const SECONDARY = colors.secondary;
+const PRIMARY = colors.primary;
+const INPUT_BG = colors.inputBackground;
+const ERROR_COLOR = colors.danger;
+const PLACEHOLDER = colors.placeholder;
+const FONT_ITALIC = fonts.italic;
+const FONT_BOLD_ITALIC = fonts.boldItalic;
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, "Register">;
 
@@ -101,7 +105,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     <TextInput
                         style={styles.input}
                         placeholder="abcd12@durham.ac.uk"
-                        placeholderTextColor="#b5b0ab"
+                        placeholderTextColor={PLACEHOLDER}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -116,7 +120,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     <TextInput
                         style={styles.input}
                         placeholder="Create a password (min. 8 characters)"
-                        placeholderTextColor="#b5b0ab"
+                        placeholderTextColor={PLACEHOLDER}
                         secureTextEntry
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -131,7 +135,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     <TextInput
                         style={styles.input}
                         placeholder="Confirm password"
-                        placeholderTextColor="#b5b0ab"
+                        placeholderTextColor={PLACEHOLDER}
                         secureTextEntry
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
     },
 
     heading: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 44,
         color: SECONDARY,
         textAlign: "center",
@@ -192,7 +196,7 @@ const styles = StyleSheet.create({
     },
 
     subtitle: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         color: PRIMARY,
         textAlign: "center",
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
     },
 
     subtitleBold: {
-        fontFamily: "Georgia-BoldItalic",
+        fontFamily: FONT_BOLD_ITALIC,
         color: PRIMARY,
     },
 
@@ -209,16 +213,16 @@ const styles = StyleSheet.create({
         width: "100%",
         height: 52,
         paddingHorizontal: 24,
-        borderRadius: 999,
+        borderRadius: radii.full,
         backgroundColor: INPUT_BG,
         color: PRIMARY,
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 16,
         marginBottom: 16,
     },
 
     errorText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         color: ERROR_COLOR,
         fontSize: 13,
         textAlign: "center",
@@ -226,7 +230,7 @@ const styles = StyleSheet.create({
     },
 
     noteText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         textAlign: "center",
         color: PRIMARY,
         fontSize: 13,

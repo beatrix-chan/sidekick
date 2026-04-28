@@ -4,6 +4,7 @@ import { User } from "firebase/auth";
 import OnboardingStack from "./OnboardingStack";
 import MainTabs from "./MainTabs";
 import { onAuthChange } from "../authHelpers";
+import { colors } from "../theme/tokens";
 
 export default function RootNavigator() {
     const [user, setUser] = useState<User | null>(null);
@@ -22,7 +23,7 @@ export default function RootNavigator() {
     if (loading) {
         return (
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" color="#5b798a" />
+                <ActivityIndicator size="large" color={colors.secondary} />
             </View>
         );
     }

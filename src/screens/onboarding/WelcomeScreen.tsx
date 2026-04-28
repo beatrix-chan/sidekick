@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { CircleChevronRight as CircleChevronRightIcon } from "lucide-react-native";
 import { OnboardingStackParamList } from "../../navigation/OnboardingStack";
 import Wordmark from "../../../assets/wordmark.svg";
+import { colors, fonts } from "../../theme/tokens";
 
 // lucide-react-native's color prop maps to SVG stroke at runtime but its TS
 // types don't surface it through the SvgProps chain in this dependency set.
@@ -14,8 +15,9 @@ const CircleChevronRight = CircleChevronRightIcon as React.ComponentType<{
     strokeWidth: number;
 }>
 
-const SECONDARY = "#5b798a";
-const BG = "#f4ece4";
+const SECONDARY = colors.secondary;
+const BG = colors.background;
+const FONT_ITALIC = fonts.italic;
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, "Welcome">;
 
@@ -68,13 +70,13 @@ const styles = StyleSheet.create({
         gap: 46,
     },
     welcomeText: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 48,
         color: SECONDARY,
         lineHeight: 56,
     },
     subtitle: {
-        fontFamily: "Georgia-Italic",
+        fontFamily: FONT_ITALIC,
         fontSize: 24,
         color: SECONDARY,
         textAlign: "center",
